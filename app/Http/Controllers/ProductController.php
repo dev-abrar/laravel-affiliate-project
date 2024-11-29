@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\ProductGallery;
 use Illuminate\Http\Request;
+use Intervention\Image\Facades\Image;
 use Illuminate\Support\Str;
 
 class ProductController extends Controller
@@ -48,13 +49,19 @@ class ProductController extends Controller
         // Generate SKU and slug
         $sku = Str::upper(str_replace(' ', '_', substr($request->product_name, 0, 2))) . '_' . $random;
         $slug = Str::upper(str_replace(' ', '_', substr($request->product_name, 0, 10))) . '_' . $random2;
-
+        
         // Handle preview image
         $preview_img = $request->file('preview');
         $extension = $preview_img->getClientOriginalExtension();
-        $file_name = Str::lower(str_replace([' ','"'], '_', substr($request->product_name, 0, 10))) . '_' . $random . '.' . $extension;
-        $preview_img->move(public_path('upload/product/preview'), $file_name);
-
+        $file_name = Str::lower(str_replace([' ', '"'], '_', substr($request->product_name, 0, 10))) . '_' . $random . '.' . $extension;
+        $preview_path = public_path('upload/product/preview/' . $file_name);
+        Image::make($preview_img)
+            ->resize(600, null, function ($constraint) {
+                $constraint->aspectRatio();
+            })
+            ->save($preview_path, 80);
+           
+        
         // Create the product and get the created product model
         $product = Product::create([
             'product_link' => $request->product_link,
@@ -72,8 +79,14 @@ class ProductController extends Controller
 
             foreach ($gallery_img as $sl => $gallery) {
                 $gall_extension = $gallery->getClientOriginalExtension();
-                $gall_name = Str::lower(str_replace([' ','"'], '_', substr($request->product_name, 0, 10))) . '_' . $random . $sl . '.' . $gall_extension;
-                $gallery->move(public_path('upload/product/gallery'), $gall_name);
+                $gall_name = Str::lower(str_replace([' ', '"'], '_', substr($request->product_name, 0, 10))) . '_' . $random . $sl . '.' . $gall_extension;
+
+                $gallery_path = public_path('upload/product/gallery/' . $gall_name);
+                Image::make($gallery)
+                    ->resize(600, null, function ($constraint) {
+                        $constraint->aspectRatio();
+                    })
+                    ->save($gallery_path, 80);
 
                 // Create gallery images using create function
                 ProductGallery::create([
@@ -83,6 +96,8 @@ class ProductController extends Controller
             }
         }
 
+
+     
         // Return success response
         return response()->json([
             'status' => 'success',
@@ -155,15 +170,20 @@ class ProductController extends Controller
         $slug = Str::upper(str_replace(' ', '_', substr($request->product_name, 0, 10))) . '_' . $random2;
 
         // Handle preview image update if not null
-        if ($request->hasFile('preview')) {
+      if ($request->hasFile('preview')) {
             unlink(public_path('upload/product/preview/' . $product->preview));
 
 
             // Upload the new preview image
             $preview_img = $request->file('preview');
             $extension = $preview_img->getClientOriginalExtension();
-            $file_name2 = Str::lower(str_replace([' ','"'], '_', substr($request->product_name, 0, 10))) . '_' . $random . '.' . $extension;
-            $preview_img->move(public_path('upload/product/preview'), $file_name2);
+            $file_name2 = Str::lower(str_replace([' ', '"'], '_', substr($request->product_name, 0, 10))) . '_' . $random . '.' . $extension;
+            $preview_path = public_path('upload/product/preview/' . $file_name2);
+            Image::make($preview_img)
+                ->resize(600, null, function ($constraint) {
+                    $constraint->aspectRatio();
+                })
+                ->save($preview_path, 80);
             $product->update([
                 'preview' => $file_name2,
             ]);
@@ -183,8 +203,14 @@ class ProductController extends Controller
             // Upload and save new gallery images
             foreach ($request->gallery as $sl => $gallery) {
                 $gall_extension = $gallery->getClientOriginalExtension();
-                $gall_name2 = Str::lower(str_replace([' ','"'], '_', substr($request->product_name, 0, 10))) . '_' . $random . $sl . '.' . $gall_extension;
-                $gallery->move(public_path('upload/product/gallery'), $gall_name2);
+                $gall_name2 = Str::lower(str_replace([' ', '"'], '_', substr($request->product_name, 0, 10))) . '_' . $random . $sl . '.' . $gall_extension;
+                
+                $gallery_path = public_path('upload/product/gallery/' . $gall_name2);
+                Image::make($gallery)
+                    ->resize(600, null, function ($constraint) {
+                        $constraint->aspectRatio();
+                    })
+                    ->save($gallery_path, 80);
 
                 // Create gallery images using create function
                 ProductGallery::create([
@@ -193,7 +219,6 @@ class ProductController extends Controller
                 ]);
             }
         }
-
         $product->update([
             'product_link' => $request->product_link,
             'product_name' => $request->product_name,
